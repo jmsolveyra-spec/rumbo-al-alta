@@ -1,2 +1,2 @@
 // Datos de conexión a Supabase (la "anon key" es pública por diseño; los datos los protege el login).
-window.RUMBO={SUPABASE_URL:"PENDIENTE",SUPABASE_ANON_KEY:"PENDIENTE"};
+window.RUMBO={SUPABASE_URL:"https://mjjhqehnbqxdunwwuomt.supabase.co",SUPABASE_ANON_KEY:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qamhxZWhuYnF4ZHVud3d1b210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTUzMTUsImV4cCI6MjEwNzQ5MTMxNX0.J4MsW1upd7dGHL73QAeS-JHdJBmp8J1jSbLzJexDrWk"};

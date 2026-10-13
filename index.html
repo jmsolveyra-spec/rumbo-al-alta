@@ -601,7 +601,7 @@ $("logout").onclick=async()=>{await sb.auth.signOut()};
 sb.auth.onAuthStateChange((ev,session)=>{
   if(session){
     if(!db){db=sb;showApp(true);
-      const mail=session.user.email||"";if(!ls.get("pid")){pid=/juli/i.test(mail)?"b":"a";ls.set("pid",pid)}
+      const mail=session.user.email||"";if(!ls.get("pid")){pid=/jmsolveyra/i.test(mail)?"a":"b";ls.set("pid",pid)}
       startSync()}
   }else{db=null;clearInterval(poll);days={};showApp(false)}
 });
