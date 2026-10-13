@@ -25,6 +25,7 @@ body{margin:0}
   --bg:#F2F4F8; --surface:#FFFFFF; --ink:#141A2E; --muted:#5B6380; --line:#DDE1EC;
   --accent:#3340B8; --accent-soft:#E3E6FA; --b:#C23E6A; --b-soft:#F8E1EA;
   --ok:#1E8A5A; --mid:#B9820E; --bad:#C8402F;
+  --m-des:#D2691E; --m-alm:#13867A; --m-mer:#A2449F; --m-cen:#3150C9; --m-col:#7D6B4A;
   --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r:14px;
@@ -32,11 +33,11 @@ body{margin:0}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F1220; --surface:#181C2E; --ink:#E8EAF4; --muted:#9AA1BE; --line:#2A3049;
   --accent:#8C97FF; --accent-soft:#252B52; --b:#F07AA0; --b-soft:#3A2030;
-  --ok:#4CC38A; --mid:#E5B33D; --bad:#F07A68; color-scheme:dark}}
+  --ok:#4CC38A; --mid:#E5B33D; --bad:#F07A68; --m-des:#F0A060; --m-alm:#4FC4B6; --m-mer:#D88BD5; --m-cen:#8EA4FF; --m-col:#C4B08A; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1220; --surface:#181C2E; --ink:#E8EAF4; --muted:#9AA1BE; --line:#2A3049;
   --accent:#8C97FF; --accent-soft:#252B52; --b:#F07AA0; --b-soft:#3A2030;
-  --ok:#4CC38A; --mid:#E5B33D; --bad:#F07A68; color-scheme:dark}
+  --ok:#4CC38A; --mid:#E5B33D; --bad:#F07A68; --m-des:#F0A060; --m-alm:#4FC4B6; --m-mer:#D88BD5; --m-cen:#8EA4FF; --m-col:#C4B08A; color-scheme:dark}
 
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
 body{--p:var(--accent);--p-soft:var(--accent-soft)}
@@ -107,7 +108,11 @@ button{cursor:pointer}
 .habit[aria-pressed="true"] .box{background:var(--ok);border-color:var(--ok)}
 .habit[aria-pressed="true"] .box::after{content:"";width:6px;height:11px;border:solid var(--surface);border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}
 
-.meal{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.meal{background:color-mix(in srgb,var(--mc) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--mc) 30%,var(--surface));border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+#meals{display:flex;flex-direction:column;gap:12px}
+.mealhead h3{color:var(--mc);display:flex;align-items:center;gap:8px}
+.mealhead h3::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--mc)}
+.meal .add input,.meal .itc input,.meal .itc select{background:var(--surface)}
 .mealhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .mealhead h3{font-size:1.05rem;font-weight:800}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -422,7 +427,7 @@ function renderDay(){
   $("meals").innerHTML=MEALS.map(([mk,ml])=>{
     const m=doc.meals?.[mk]||{}, items=m.items||[];
     const tot=items.reduce((t,i)=>t+(Number(i.k)||0),0);
-    return`<div class="meal" data-m="${mk}">
+    return`<div class="meal" data-m="${mk}" style="--mc:var(--m-${mk})">
       <div class="mealhead"><h3>${ml}</h3><span class="muted num">${m.s==="nada"?"No comí":tot?tot.toLocaleString("es-AR")+" kcal":""}</span></div>
       <div class="chips">${STATUS.map(([s,l])=>`<button class="chip" data-act="status" data-s="${s}" aria-pressed="${m.s===s}">${l}</button>`).join("")}<button class="chip" data-act="status" data-s="nada" aria-pressed="${m.s==="nada"}">No comí</button></div>
       ${items.length?`<ul class="items">${items.map((it,i)=>itemRow(it,i)).join("")}</ul>`:""}
