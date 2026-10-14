@@ -571,7 +571,7 @@ const pkey=mk=>pid+"_"+cur+"_"+mk;
 function findFood(n){const k=norm(n||"");return FOODS.find(f=>norm(f[0])===k)||FOODS.find(f=>k&&norm(f[0]).includes(k))||null}
 function reviewHtml(mk){
   const p=photo[pkey(mk)];if(!p)return"";
-  if(p.st==="loading")return`<div class="review"><span class="rh"><span class="spin"></span>Analizando la foto…</span></div>`;
+  if(p.st==="loading")return`<div class="review"><span class="rh"><span class="spin"></span>Analizando la foto… puede tardar hasta 20 segundos.</span></div>`;
   if(p.st==="error")return`<div class="review"><span class="rh" style="color:var(--bad)">${esc(p.err)}</span><div class="rb"><button class="no" data-act="rcancel">Cerrar</button></div></div>`;
   if(!p.items.length)return`<div class="review"><span class="rh">No reconocí comida en la foto. Probá con otra más cerca y con luz.</span><div class="rb"><button class="no" data-act="rcancel">Cerrar</button></div></div>`;
   const tot=p.items.filter(x=>x.on).reduce((t,x)=>t+x.k,0);
@@ -598,7 +598,9 @@ async function analyzePhoto(mk,file){
   const k=pkey(mk);photo[k]={st:"loading"};render();
   try{
     const image=await shrink(file);
-    const{data,error}=await sb.functions.invoke("quick-action",{body:{image,mime:"image/jpeg",foods:FOODS.map(f=>f[0])}});
+    const body={image,mime:"image/jpeg",foods:FOODS.map(f=>f[0])};
+    let{data,error}=await sb.functions.invoke("quick-action",{body});
+    if(error){await new Promise(r=>setTimeout(r,3000));({data,error}=await sb.functions.invoke("quick-action",{body}))} // Google a veces está saturado: un reintento
     if(error){let msg="No se pudo analizar la foto. Probá de nuevo en un rato.";
       try{const j=await error.context.json();if(j?.code==="NOT_FOUND")msg="No encuentro la función “foto-kcal” en Supabase. Revisá que se llame exactamente así.";else if(j?.error)msg=j.error}catch(e){if(/404|not found/i.test(String(error.message)))msg="La función de fotos todavía no está configurada en Supabase."}
       throw new Error(msg)}
