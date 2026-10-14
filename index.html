@@ -96,7 +96,7 @@ button{cursor:pointer}
 .kbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
 .kbar.over i{background:var(--bad)}
 
-.weigh{display:flex;align-items:center;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+.weigh{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
 .weigh.due{border:1.5px solid var(--p);background:var(--p-soft)}
 .weigh .t{flex:1;min-width:0;font-size:.92rem}
 .weigh input{width:92px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-align:right;font-size:1.05rem}
@@ -315,13 +315,14 @@ const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k
 let cfg=structuredClone(DEFAULT_CFG);
 let days={};           // key "a_2026-10-13" -> doc
 let pid=ls.get("pid")==="b"?"b":"a";
-const TODAY=iso(new Date());
+const WEIGH_EVERY=4; // pesaje cada 4 días
+let TODAY=iso(new Date());
 let cur=null;
 let db=null, sample=null, canWrite=true, cfgDirty=false;
 const dirty=new Set(), timers={}, inflight={}, again={};
 
 function clampDate(s){if(s<cfg.start)return cfg.start;if(s>cfg.end)return cfg.end;return s}
-function isWeigh(s){const k=diff(cfg.start,s);return k>=0&&s<=cfg.end&&(k%3===0||s===cfg.end)}
+function isWeigh(s){const k=diff(cfg.start,s);return k>=0&&s<=cfg.end&&(k%WEIGH_EVERY===0||s===cfg.end)}
 function key(p,d){return p+"_"+d}
 function blank(p,d){return{person:p,date:d,meals:{},train:false,steps:false,kg:null}}
 function getDay(p,d){return days[key(p,d)]||blank(p,d)}
@@ -369,7 +370,7 @@ function renderHero(){
   $("countTxt").innerHTML=(left===1?"día":"días")+" para el alta<br><span class=\"muted\">"+DOWL[end.getDay()]+" "+end.getDate()+" de "+MON[end.getMonth()]+"</span>";
   $("trackFill").style.width=(el/total*100)+"%";
   const tr=$("track");tr.querySelectorAll(".tick").forEach(t=>t.remove());
-  for(let k=3;k<total;k+=3){const t=document.createElement("i");t.className="tick";t.style.left=(k/total*100)+"%";tr.appendChild(t)}
+  for(let k=WEIGH_EVERY;k<total;k+=WEIGH_EVERY){const t=document.createElement("i");t.className="tick";t.style.left=(k/total*100)+"%";tr.appendChild(t)}
   $("capStart").textContent=short(cfg.start);$("capEnd").textContent=short(cfg.end);
   $("capMid").textContent="Día "+(el+1)+" de "+(total+1);
   // próximo pesaje
@@ -419,8 +420,11 @@ function renderDay(){
   // pesaje
   const due=isWeigh(cur);
   const w=$("weigh");w.className="weigh"+(due?" due":"");
-  w.innerHTML=`<div class="t"><b>${due?"Día de pesaje":"Peso"}</b><br><span class="muted" style="font-size:.82rem">${due?"Cada 3 días, en ayunas":"Hoy no toca, es opcional"}</span></div>
+  w.innerHTML=`<div class="t"><b>${due?"Día de pesaje":"Peso"}</b><br><span class="muted" style="font-size:.82rem">${due?"Cada "+WEIGH_EVERY+" días, en ayunas":"Hoy no toca, es opcional"}</span></div>
     <input id="kg" type="number" step="0.1" inputmode="decimal" placeholder="kg" value="${doc.kg??""}" ${canWrite?"":"disabled"}> <span class="muted">kg</span>`;
+  if(doc.kg!=null&&doc.kg!==""){const prev=personStats(pid).weights.filter(x=>x.date<cur).pop();
+    if(prev){const d=Math.round((Number(doc.kg)-prev.kg)*10)/10;
+      w.insertAdjacentHTML("beforeend",`<div style="flex-basis:100%;font-size:.85rem" class="muted">Contra el pesaje del ${short(prev.date)} (${fmt(prev.kg)} kg): <b style="color:${d<0?"var(--ok)":d>0?"var(--bad)":"var(--ink)"}">${d<0?"bajaste "+fmt(-d)+" kg":d>0?"subiste "+fmt(d)+" kg":"igual, 0 kg"}</b></div>`)}}
   $("h-train").setAttribute("aria-pressed",String(!!doc.train));
   $("h-steps").setAttribute("aria-pressed",String(!!doc.steps));
   // comidas
@@ -635,7 +639,8 @@ function startSync(){
   loadAll();clearInterval(poll);
   poll=setInterval(()=>{if(document.visibilityState==="visible")loadAll()},20000);
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&db)loadAll()});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){const t=iso(new Date());if(t!==TODAY){const wasToday=cur===clampDate(TODAY);TODAY=t;if(wasToday)cur=today();render()}}if(document.visibilityState==="visible"&&db)loadAll()});
 window.addEventListener("online",()=>{for(const k of dirty)if(!timers[k])flush(k)});
 
 function showApp(on){$("login").hidden=on;$("app").hidden=!on}
