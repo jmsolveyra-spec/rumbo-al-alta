@@ -730,8 +730,13 @@ async function loadAll(){
     else next[r.id]=r.data;
   }
   for(const k of dirty)if(days[k])next[k]=days[k];
-  days=next;cur=clampDate(cur);render();
+  days=next;cur=clampDate(cur);
+  if(editing()){pendingRender=true;return} // no pisar lo que se está escribiendo
+  render();
 }
+let pendingRender=false;
+const editing=()=>{const a=document.activeElement;return!!a&&a.closest?.("#app")&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)};
+document.addEventListener("focusout",()=>setTimeout(()=>{if(pendingRender&&!editing()){pendingRender=false;render()}},300));
 let poll=null;
 function startSync(){
   loadAll();clearInterval(poll);
