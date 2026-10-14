@@ -603,7 +603,8 @@ function addReviewed(mk){
   const its=p.items.filter(x=>x.on&&x.g>0).map(x=>{
     if(!x.food)return{t:x.t,k:x.k,m:1};
     const it=newItem(x.food,null,null),u0=x.food[2][0];
-    if(!VAGUE.test(u0[0])&&u0[1]>0){it.u=u0[0];it.q=Math.max(0.5,Math.round(x.g/u0[1]*2)/2)}else{it.u="g";it.q=x.g}
+    const qh=Math.round(x.g/u0[1]*2)/2; // usar unidades solo si no cambia las calorías más de un 15%
+    if(!VAGUE.test(u0[0])&&u0[1]>0&&qh>0&&Math.abs(qh*u0[1]-x.g)/x.g<=0.15){it.u=u0[0];it.q=qh}else{it.u="g";it.q=x.g}
     return calc(it)});
   delete photo[k];
   mutate(d=>{const m=d.meals[mk]||={items:[]};m.items=(m.items||[]).concat(its);if(!m.s||m.s==="nada")m.s="plan"});
