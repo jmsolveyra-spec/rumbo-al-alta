@@ -656,6 +656,12 @@ $("day").addEventListener("change",e=>{
 });
 $("meals").addEventListener("input",e=>{
   if(e.target.classList.contains("food"))showSugs(e.target.closest(".meal").dataset.m);
+  if(e.target.dataset.act==="q"){ // mostrar las calorías mientras se escribe, sin esperar a salir del campo
+    const t=e.target,mk=t.closest(".meal").dataset.m,doc=getDay(pid,cur),its=doc.meals?.[mk]?.items||[],it=its[Number(t.dataset.i)];
+    if(it&&it.k100!=null){const tmp=calc({...it,q:Math.max(0,Number(String(t.value).replace(",","."))||0)});
+      t.closest(".it").querySelector(".itn b").textContent=tmp.k.toLocaleString("es-AR")+" kcal";
+      const tot=its.reduce((a,x,j)=>a+(j===Number(t.dataset.i)?tmp.k:(Number(x.k)||0)),0);
+      t.closest(".meal").querySelector(".mealhead .muted").textContent=tot.toLocaleString("es-AR")+" kcal"}}
   if(e.target.id?.startsWith("re-")){const mk=e.target.closest(".meal").dataset.m;photo[pkey(mk)].q=e.target.value;$("rs-"+mk).innerHTML=rsugs(mk)}
 });
 $("meals").addEventListener("keydown",e=>{
