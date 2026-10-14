@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
       "Si no está en la lista, poné un nombre corto en español y estimá sus kcal. " +
       'Respondé solo JSON con esta forma: {"items":[{"nombre":string,"gramos":number,"kcal":number|null,"en_lista":boolean}],"nota":string}. ' +
       '"nota" es una frase corta sobre lo que no se ve bien (por ejemplo si no se sabe cuánto aceite tiene). Si la foto no muestra comida, devolvé items vacío.';
-    const models = [Deno.env.get("GEMINI_MODEL"), "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"].filter(Boolean);
+    // Si un modelo no existe o está saturado, se prueba el siguiente.
+    const models = [Deno.env.get("GEMINI_MODEL"), "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-flash-lite-latest", "gemini-2.0-flash"].filter(Boolean);
     let last = "";
     for (const m of models) {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
@@ -35,8 +36,8 @@ Deno.serve(async (req) => {
           generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
         }),
       });
-      if (r.status === 404) { last = `${m} no disponible`; continue; }
-      const j = await r.json();
+      const j = await r.json().catch(() => ({}));
+      if ([404, 429, 500, 503].includes(r.status)) { last = `${m}: ${j?.error?.message || r.status}`; continue; }
       if (!r.ok) return json({ error: j?.error?.message || "Gemini devolvió un error.", status: r.status }, 502);
       const txt = (j.candidates?.[0]?.content?.parts || []).map((p: { text?: string }) => p.text || "").join("");
       try {
@@ -46,7 +47,8 @@ Deno.serve(async (req) => {
         return json({ error: "No se pudo leer la respuesta de Gemini.", raw: txt.slice(0, 300) }, 502);
       }
     }
-    return json({ error: "Ningún modelo de Gemini disponible (" + last + ")." }, 502);
+    const ocupado = /quota|rate|exhaust|demand|overload/i.test(last);
+    return json({ error: ocupado ? "Google está saturado o se alcanzó el límite gratis. Probá de nuevo en unos minutos o cargalo a mano." : "Ningún modelo de Gemini disponible (" + last + ")." }, 502);
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

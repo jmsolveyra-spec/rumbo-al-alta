@@ -590,7 +590,7 @@ async function analyzePhoto(mk,file){
     const image=await shrink(file);
     const{data,error}=await sb.functions.invoke("quick-action",{body:{image,mime:"image/jpeg",foods:FOODS.map(f=>f[0])}});
     if(error){let msg="No se pudo analizar la foto. Probá de nuevo en un rato.";
-      try{const j=await error.context.json();if(j?.code==="NOT_FOUND")msg="No encuentro la función “foto-kcal” en Supabase. Revisá que se llame exactamente así.";else if(j?.error)msg=/quota|rate|limit|exhaust/i.test(j.error)?"Se alcanzó el límite gratis de fotos por ahora. Probá más tarde o cargalo a mano.":j.error}catch(e){if(/404|not found/i.test(String(error.message)))msg="La función de fotos todavía no está configurada en Supabase."}
+      try{const j=await error.context.json();if(j?.code==="NOT_FOUND")msg="No encuentro la función “foto-kcal” en Supabase. Revisá que se llame exactamente así.";else if(j?.error)msg=j.error}catch(e){if(/404|not found/i.test(String(error.message)))msg="La función de fotos todavía no está configurada en Supabase."}
       throw new Error(msg)}
     const items=(data.items||[]).filter(x=>x&&x.nombre).map(x=>{const food=findFood(x.nombre);const g=Math.max(1,Math.round(Number(x.gramos)||100));
       return rkcal({t:food?food[0]:String(x.nombre),g,food,kpg:food?null:(Number(x.kcal)||0)/g,on:true})});
