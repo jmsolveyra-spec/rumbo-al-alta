@@ -137,8 +137,8 @@ button{cursor:pointer}
 .photo svg{width:18px;height:18px}
 .review{border:1.5px dashed var(--mc);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
 .review .rh{font-weight:700;font-size:.92rem}
-.review .ri{display:flex;align-items:center;gap:8px;border-bottom:1px dotted var(--line);padding:4px 0}
-.review .ri label{flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow-wrap:anywhere}
+.review .ri{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 8px;border-bottom:1px dotted var(--line);padding:4px 0}
+.review .ri label{flex-basis:100%;min-width:0;display:flex;align-items:center;gap:8px;overflow-wrap:break-word}
 .review .ri input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--mc)}
 .review .ri input[type=number]{width:66px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:right;background:var(--bg)}
 .review .ri b{width:70px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
