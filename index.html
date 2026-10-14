@@ -142,6 +142,9 @@ button{cursor:pointer}
 .review .ri input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--mc)}
 .review .ri input[type=number]{width:66px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:right;background:var(--bg)}
 .review .ri b{width:70px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.review .chg{border:0;background:none;color:var(--mc);font-weight:700;font-size:.82rem;padding:6px 4px;margin-right:auto;text-decoration:underline}
+.rsearch{flex-basis:100%;display:flex;flex-direction:column}
+.rsearch input{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
 .review .rb{display:flex;gap:8px;justify-content:flex-end}
 .review .rb button{border:0;border-radius:10px;padding:10px 14px;font-weight:700}
 .review .ok{background:var(--mc);color:var(--surface)}
@@ -574,9 +577,16 @@ function reviewHtml(mk){
   const tot=p.items.filter(x=>x.on).reduce((t,x)=>t+x.k,0);
   return`<div class="review"><span class="rh">Esto veo en la foto. Corregí los gramos y destildá lo que no va:</span>
     ${p.items.map((x,i)=>`<div class="ri"><label><input type="checkbox" data-act="rc" data-i="${i}"${x.on?" checked":""}>${esc(x.t)}</label>
-      <input type="number" inputmode="numeric" data-act="rg" data-i="${i}" value="${x.g}" aria-label="Gramos"><span class="muted">g</span><b>${x.k} kcal</b></div>`).join("")}
+      <button class="chg" data-act="redit" data-i="${i}">${p.edit===i?"Cerrar":"¿No es esto? Cambiar"}</button>
+      <input type="number" inputmode="numeric" data-act="rg" data-i="${i}" value="${x.g}" aria-label="Gramos"><span class="muted">g</span><b>${x.k} kcal</b>
+      ${p.edit===i?`<div class="rsearch"><input id="re-${mk}" placeholder="¿Qué era? Ej: calabaza" autocomplete="off" autocapitalize="off" value="${esc(p.q||"")}"><div class="sugs" id="rs-${mk}">${rsugs(mk)}</div></div>`:""}</div>`).join("")}
     ${p.nota?`<span class="muted" style="font-size:.82rem">${esc(p.nota)}</span>`:""}
     <div class="rb"><button class="no" data-act="rcancel">Cancelar</button><button class="ok" data-act="radd">Agregar ${tot} kcal</button></div></div>`;
+}
+function rsugs(mk){
+  const p=photo[pkey(mk)];const q=(p?.q||"").trim();if(!q)return"";
+  const{res}=searchFoods(q);
+  return res.length?res.map(f=>`<button type="button" data-act="rpick" data-f="${FOODS.indexOf(f)}"><span>${esc(f[0])}</span><span>${f[1]} kcal/100 g</span></button>`).join(""):`<span class="muted" style="padding:8px 10px;font-size:.85rem">No encuentro “${esc(q)}”. Probá con otra palabra.</span>`;
 }
 function rkcal(x){x.k=x.food?Math.round(x.food[1]*x.g/100):Math.round((x.kpg||0)*x.g);return x}
 function shrink(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
@@ -642,7 +652,10 @@ $("h-steps").onclick=()=>mutate(d=>{d.steps=!d.steps});
 $("day").addEventListener("change",e=>{
   if(e.target.id==="kg"){const v=e.target.value.replace(",",".");mutate(d=>{d.kg=v===""?null:Math.round(Number(v)*10)/10})}
 });
-$("meals").addEventListener("input",e=>{if(e.target.classList.contains("food"))showSugs(e.target.closest(".meal").dataset.m)});
+$("meals").addEventListener("input",e=>{
+  if(e.target.classList.contains("food"))showSugs(e.target.closest(".meal").dataset.m);
+  if(e.target.id?.startsWith("re-")){const mk=e.target.closest(".meal").dataset.m;photo[pkey(mk)].q=e.target.value;$("rs-"+mk).innerHTML=rsugs(mk)}
+});
 $("meals").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.classList.contains("food")){e.preventDefault();const mk=e.target.closest(".meal").dataset.m;const b=$("s-"+mk)?.querySelector("button");if(b)b.click()}
   if(e.key==="Enter"&&e.target.matches(".itc input")){e.preventDefault();e.target.blur()}
@@ -659,6 +672,9 @@ $("meals").addEventListener("click",e=>{
   if(b.dataset.act==="photo"){$("ph-"+mk).value="";$("ph-"+mk).click()}
   if(b.dataset.act==="rcancel"){delete photo[pkey(mk)];render()}
   if(b.dataset.act==="radd")addReviewed(mk);
+  if(b.dataset.act==="redit"){const p=photo[pkey(mk)];p.edit=p.edit===i?null:i;p.q="";render();setTimeout(()=>$("re-"+mk)?.focus(),0)}
+  if(b.dataset.act==="rpick"){const p=photo[pkey(mk)],x=p.items[p.edit],f=FOODS[Number(b.dataset.f)];
+    if(x&&f){x.food=f;x.t=f[0];x.kpg=null;x.on=true;rkcal(x)}p.edit=null;p.q="";render()}
   if(b.dataset.act==="status")mutate(d=>{const m=d.meals[mk]||={items:[]};m.s=m.s===b.dataset.s?null:b.dataset.s});
   if(b.dataset.act==="del")mutate(d=>{d.meals[mk].items.splice(i,1)});
   if(b.dataset.act==="pick")pushItem(mk,newItem(dt.res[i],dt.qty,dt.unit));
