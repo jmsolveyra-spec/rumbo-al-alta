@@ -389,10 +389,13 @@ function blank(p,d){return{person:p,date:d,meals:{},train:false,steps:false,kg:n
 function getDay(p,d){return days[key(p,d)]||blank(p,d)}
 function today(){return clampDate(TODAY)}
 
-function dayAdh(doc){
+function mealAdh(doc){
   const s=MEALS.map(([k])=>doc.meals?.[k]?.s).filter(x=>x in SCORE);
   return s.length?s.reduce((a,x)=>a+SCORE[x],0)/s.length:null;
 }
+// Si un día ya terminado cerró en déficit (comió menos de lo que gastó), cuenta como cumplido aunque alguna comida haya sido "Me salí".
+const savedByDeficit=doc=>{const a=mealAdh(doc);if(a==null||a>=100||doc.date>=TODAY||!dayKcal(doc))return false;const net=dayBalance(doc);return net!=null&&net<=0};
+function dayAdh(doc){return savedByDeficit(doc)?100:mealAdh(doc)}
 function dayKcal(doc){let t=0;for(const[k]of MEALS)for(const it of doc.meals?.[k]?.items||[])t+=Number(it.k)||0;return t}
 function personDays(p){return Object.values(days).filter(d=>d.person===p&&d.date>=cfg.start&&d.date<=cfg.end).sort((a,b)=>a.date<b.date?-1:1)}
 function personStats(p){
@@ -477,7 +480,9 @@ function renderDay(){
     <text x="32" y="37" text-anchor="middle" font-family="Bricolage Grotesque, system-ui" font-weight="800" font-size="15" fill="var(--ink)">${a==null?"—":Math.round(a)+"%"}</text></svg>
     <div class="txt"><span class="label">Adherencia del día</span>
     <span class="num"><b>${kc.toLocaleString("es-AR")}</b> de ${tgt.toLocaleString("es-AR")} kcal${tgt&&kc>tgt*1.1?' · <span style="color:var(--bad)">te pasaste</span>':""}</span>
-    <div class="kbar${tgt&&kc>tgt?" over":""}"><i style="width:${tgt?Math.min(100,kc/tgt*100):0}%"></i></div></div>`;
+    <div class="kbar${tgt&&kc>tgt?" over":""}"><i style="width:${tgt?Math.min(100,kc/tgt*100):0}%"></i></div>
+    ${savedByDeficit(doc)?`<span class="small" style="color:var(--ok)"><b>Día cumplido:</b> te saliste en alguna comida pero cerraste en déficit.</span>`:
+      (mealAdh(doc)!=null&&mealAdh(doc)<100&&cur===TODAY?`<span class="small">Si terminás el día en déficit, cuenta como cumplido igual.</span>`:"")}</div>`;
   // pesaje
   const due=isWeigh(cur);
   const w=$("weigh");w.className="weigh"+(due?" due":"");
@@ -606,14 +611,18 @@ function showSugs(mk){
 }
 
 /* ---------- actividad y balance ---------- */
-const kgAt=(p,date)=>{const st=personStats(p),ws=st.weights.filter(w=>w.date<=date);return ws.length?ws[ws.length-1].kg:(st.startKg??st.weights[0]?.kg??80)};
+function weightsOf(p){return Object.values(days).filter(d=>d.person===p&&d.date>=cfg.start&&d.date<=cfg.end).sort((a,b)=>a.date<b.date?-1:1).map(d=>({date:d.date,kg:normKg(d.kg)})).filter(w=>w.kg!=null)}
+const kgAt=(p,date)=>{const ws=weightsOf(p),b=ws.filter(w=>w.date<=date);return b.length?b[b.length-1].kg:(normKg(cfg.people[p].startKg)??ws[0]?.kg??80)};
+const validSteps=n=>n>=0&&n<100000?n:null;
+function dayBurn(doc,kg){const n=validSteps(doc.stepsCount);return(n?stepsKcal(n,kg):0)+(doc.acts||[]).reduce((t,a)=>t+actKcal(a,kg),0)}
+function dayBalance(doc){const p=doc.person,kg=kgAt(p,doc.date),b=bmr(p,kg);if(!b)return null;return dayKcal(doc)-(Math.round(b*1.1)+dayBurn(doc,kg))}
 const stepsKcal=(n,kg)=>Math.round((Number(n)||0)*kg*0.0005); // ≈0,5 kcal por kg cada 1.000 pasos
 const actKcal=(a,kg)=>a.met?Math.round(a.met*kg*(Number(a.min)||0)/60):Math.round(Number(a.k)||0);
 function bmr(p,kg){const P=cfg.people[p],cm=Number(P.cm),age=Number(P.age);if(!cm||!age)return null;return Math.round(10*kg+6.25*cm-5*age+(P.sex==="f"?-161:5))}
 const hora=iso=>{const d=new Date(iso);return(iso.slice(0,10)===TODAY?"":short(iso.slice(0,10))+" ")+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})};
 let actSel=0,actMin=60;
 function renderBurn(doc){
-  const kg=kgAt(pid,cur),n=doc.stepsCount>=0&&doc.stepsCount<100000?doc.stepsCount:null,sk=n?stepsKcal(n,kg):0,acts=doc.acts||[],ak=acts.reduce((t,a)=>t+actKcal(a,kg),0);
+  const kg=kgAt(pid,cur),n=validSteps(doc.stepsCount),sk=n?stepsKcal(n,kg):0,acts=doc.acts||[],ak=acts.reduce((t,a)=>t+actKcal(a,kg),0);
   $("burn").innerHTML=`<div class="bh"><h3>Actividad</h3><b>${(sk+ak).toLocaleString("es-AR")} kcal quemadas</b></div>
    <div class="steprow"><span>Pasos</span><input id="pasos" inputmode="numeric" placeholder="Ej: 8500" value="${n??""}" aria-label="Pasos del día"${canWrite?"":" disabled"}><span class="sk">${n?sk.toLocaleString("es-AR")+" kcal":""}</span></div>
    <div class="kbar"><i style="width:${Math.min(100,(n||0)/100)}%;background:${(n||0)>=10000?"var(--ok)":"var(--p)"}"></i></div>
