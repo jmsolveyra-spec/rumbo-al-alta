@@ -562,7 +562,7 @@ function renderDuo(){
 function itemRow(it,i){
   const kc=it.k!=null?Number(it.k).toLocaleString("es-AR")+" kcal":"";
   if(it.m||it.k100==null)return`<li class="it"><div class="itn"><span>${esc(it.t)}</span></div>
-    <div class="itc"><input type="number" inputmode="numeric" data-act="mk" data-i="${i}" value="${it.k??""}" placeholder="kcal" aria-label="Calorías"><span class="muted">kcal</span><button class="x" data-act="del" data-i="${i}" aria-label="Borrar">×</button></div></li>`;
+    <div class="itc"><input type="number" inputmode="numeric" data-act="mk" data-i="${i}" value="${it.k??""}" placeholder="¿cuántas?" aria-label="Calorías"><span class="muted">kcal</span><button class="x" data-act="del" data-i="${i}" aria-label="Borrar">×</button></div></li>`;
   const opts=[...(it.us||[]).map(([l])=>l),"g"];
   return`<li class="it"><div class="itn"><span>${esc(it.t)}</span><b>${kc}</b></div>
     <div class="itc"><button data-act="minus" data-i="${i}" aria-label="Menos">−</button>
@@ -603,11 +603,15 @@ function showSugs(mk){
   const inp=$("f-"+mk),box=$("s-"+mk);if(!inp||!box)return;
   const v=inp.value.trim();if(!v){box.hidden=true;box.innerHTML="";return}
   const{qty,unit,res,custom}=searchFoods(v);
+  // "865", "865 kcal", "varios 865" o "varios 865 kcal" -> ítem a mano con esas calorías
+  const mk2=v.match(/^(.*?)\s*(\d{2,5})\s*(k?cal\w*|calor\w*)?\s*$/i);
+  const kc=mk2&&(mk2[3]||!mk2[1].trim()||!res.length)?{t:mk2[1].trim().replace(/[.:,-]+$/,"")||"Varios",k:Number(mk2[2])}:null;
   const label=f=>{const it=newItem(f,qty,unit&&unit);return`${it.q} ${it.u} · ${it.k} kcal`};
   box.innerHTML=res.map((f,i)=>`<button type="button" data-act="pick" data-i="${i}"><span>${esc(f[0])}</span><span>${esc(label(f))}</span></button>`).join("")+
     custom.map((c,i)=>`<button type="button" data-act="pickc" data-i="${i}"><span>${esc(c.t)}</span><span>${c.k} kcal</span></button>`).join("")+
+    (kc?`<button type="button" class="manual" data-act="manualk"><span>Agregar “${esc(kc.t)}” con ${kc.k.toLocaleString("es-AR")} kcal</span><span>a mano</span></button>`:"")+
     `<button type="button" class="manual" data-act="manual"><span>Agregar “${esc(v)}” a mano</span><span>poner kcal</span></button>`;
-  box._data={qty,unit,res,custom,v};box.hidden=false;
+  box._data={qty,unit,res,custom,v,kc};box.hidden=false;
 }
 
 /* ---------- actividad y balance ---------- */
@@ -781,10 +785,10 @@ $("meals").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.classList.contains("food")){e.preventDefault();const mk=e.target.closest(".meal").dataset.m;const b=$("s-"+mk)?.querySelector("button");if(b)b.click()}
   if(e.key==="Enter"&&e.target.matches(".itc input")){e.preventDefault();e.target.blur()}
 });
-function pushItem(mk,it){
-  $("f-"+mk).value="";
-  mutate(d=>{const m=d.meals[mk]||={items:[]};m.items=m.items||[];m.items.push(it);if(!m.s||m.s==="nada")m.s="plan"});
-  setTimeout(()=>{const f=$("f-"+mk);if(f)f.focus()},0);
+function pushItem(mk,it,askKcal){
+  $("f-"+mk).value="";let idx=0;
+  mutate(d=>{const m=d.meals[mk]||={items:[]};m.items=m.items||[];m.items.push(it);idx=m.items.length-1;if(!m.s||m.s==="nada")m.s="plan"});
+  setTimeout(()=>{const f=askKcal?document.querySelector(`.meal[data-m="${mk}"] [data-act="mk"][data-i="${idx}"]`):$("f-"+mk);if(f)f.focus()},0);
 }
 $("meals").addEventListener("click",e=>{
   const b=e.target.closest("button[data-act]");if(!b)return;
@@ -800,7 +804,8 @@ $("meals").addEventListener("click",e=>{
   if(b.dataset.act==="del")mutate(d=>{d.meals[mk].items.splice(i,1)});
   if(b.dataset.act==="pick")pushItem(mk,newItem(dt.res[i],dt.qty,dt.unit));
   if(b.dataset.act==="pickc"){const c=dt.custom[i];pushItem(mk,{t:c.t,k:c.k,m:1})}
-  if(b.dataset.act==="manual")pushItem(mk,{t:dt.v,k:null,m:1});
+  if(b.dataset.act==="manual")pushItem(mk,{t:dt.v.replace(/[.:,-]+$/,""),k:null,m:1},true);
+  if(b.dataset.act==="manualk")pushItem(mk,{t:dt.kc.t,k:dt.kc.k,m:1});
   if(b.dataset.act==="plus"||b.dataset.act==="minus")mutate(d=>{const it=d.meals[mk].items[i];const st=it.u==="g"?10:(it.q%1?0.5:1);
     it.q=Math.max(0,Math.round((Number(it.q)+(b.dataset.act==="plus"?st:-st))*10)/10);calc(it)});
 });
