@@ -833,10 +833,23 @@ async function loadAll(){
   }
   for(const k of dirty)if(days[k])next[k]=days[k];
   days=next;cur=clampDate(cur);
+  fixWeights();
   if(editing()){pendingRender=true;return} // no pisar lo que se está escribiendo
   render();
 }
 let pendingRender=false;
+// Guarda corregidos los pesos que quedaron sin coma (ej. 8720 -> 87,2). Corre una vez por carga.
+let weightsFixed=false;
+async function fixWeights(){
+  if(weightsFixed||!db)return;weightsFixed=true;
+  for(const[k,d]of Object.entries(days)){
+    if(d.kg==null||d.kg==="")continue;const n=normKg(d.kg);
+    if(n!=null&&n!==Number(d.kg)){const nd={...d,kg:n};days[k]=nd;try{await put(k,nd)}catch(e){}}
+  }
+  let ch=false;for(const p of["a","b"]){const v=cfg.people[p].startKg;const n=normKg(v);if(v!=null&&v!==""&&n!=null&&n!==Number(v)){cfg.people[p].startKg=n;ch=true}}
+  if(ch){try{await put("config",structuredClone(cfg))}catch(e){}}
+  render();
+}
 const editing=()=>{const a=document.activeElement;return!!a&&a.closest?.("#app")&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)};
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pendingRender&&!editing()){pendingRender=false;render()}},300));
 let poll=null;
