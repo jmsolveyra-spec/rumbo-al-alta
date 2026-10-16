@@ -367,6 +367,8 @@ const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
 const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const short=s=>{const d=parse(s);return d.getDate()+"/"+pad(d.getMonth()+1)};
+// pesos guardados sin la coma (ej. 8720 en vez de 87,20) se corrigen; valores imposibles se ignoran
+const normKg=v=>{if(v==null||v==="")return null;const n=Number(v);if(n>20&&n<300)return n;if(n/100>20&&n/100<300)return n/100;if(n/10>20&&n/10<300)return n/10;return null};
 const fmtKg=n=>Number(n).toLocaleString("es-AR",{minimumFractionDigits:1,maximumFractionDigits:2});
 const fmt=(n,dec=1)=>n==null||isNaN(n)?"—":Number(n).toLocaleString("es-AR",{minimumFractionDigits:dec,maximumFractionDigits:dec});
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
@@ -397,9 +399,9 @@ function personStats(p){
   const ds=personDays(p), upto=ds.filter(d=>d.date<=TODAY);
   const adh=upto.map(dayAdh).filter(x=>x!=null);
   const last7=upto.filter(d=>diff(d.date,TODAY)<7).map(dayAdh).filter(x=>x!=null);
-  const weights=ds.filter(d=>d.kg!=null&&d.kg!=="").map(d=>({date:d.date,kg:Number(d.kg)}));
+  const weights=ds.map(d=>({date:d.date,kg:normKg(d.kg)})).filter(w=>w.kg!=null);
   const P=cfg.people[p];
-  const startKg=P.startKg!=null&&P.startKg!==""?Number(P.startKg):(weights[0]?.kg??null);
+  const startKg=normKg(P.startKg)??(weights[0]?.kg??null);
   const curKg=weights.length?weights[weights.length-1].kg:null;
   const elapsed=Math.max(0,Math.min(diff(cfg.start,TODAY)+1,diff(cfg.start,cfg.end)+1));
   return{
@@ -437,7 +439,7 @@ function renderHero(){
   const w=$("nextWeigh");
   if(n>cfg.end){w.innerHTML="Último pesaje hecho. ¡Llegaron!";return}
   const doc=getDay(pid,n), dd=diff(TODAY,n), d=parse(n);
-  if(dd===0)w.innerHTML=doc.kg!=null&&doc.kg!==""?"Pesaje de hoy cargado: <b>"+fmt(doc.kg)+" kg</b>":"<b>Hoy toca pesarse.</b> Cargalo abajo, en ayunas.";
+  if(dd===0)w.innerHTML=normKg(doc.kg)!=null?"Pesaje de hoy cargado: <b>"+fmtKg(normKg(doc.kg))+" kg</b>":"<b>Hoy toca pesarse.</b> Cargalo abajo, en ayunas.";
   else w.innerHTML="Próximo pesaje: <b>"+DOWL[d.getDay()]+" "+short(n)+"</b> (en "+dd+(dd===1?" día":" días")+")";
 }
 function renderStats(){
@@ -480,9 +482,9 @@ function renderDay(){
   const due=isWeigh(cur);
   const w=$("weigh");w.className="weigh"+(due?" due":"");
   w.innerHTML=`<div class="t"><b>${due?"Día de pesaje":"Peso"}</b><br><span class="muted" style="font-size:.82rem">${due?"Cada "+WEIGH_EVERY+" días, en ayunas":"Hoy no toca, es opcional"}</span></div>
-    <input id="kg" type="text" inputmode="decimal" placeholder="Ej: 87,20" value="${doc.kg!=null&&doc.kg!==""?fmtKg(doc.kg):""}" ${canWrite?"":"disabled"}> <span class="muted">kg</span>`;
-  if(doc.kg!=null&&doc.kg!==""){const prev=personStats(pid).weights.filter(x=>x.date<cur).pop();
-    if(prev){const d=Math.round((Number(doc.kg)-prev.kg)*100)/100;
+    <input id="kg" type="text" inputmode="decimal" placeholder="Ej: 87,20" value="${normKg(doc.kg)!=null?fmtKg(normKg(doc.kg)):""}" ${canWrite?"":"disabled"}> <span class="muted">kg</span>`;
+  if(normKg(doc.kg)!=null){const prev=personStats(pid).weights.filter(x=>x.date<cur).pop();
+    if(prev){const d=Math.round((normKg(doc.kg)-prev.kg)*100)/100;
       w.insertAdjacentHTML("beforeend",`<div style="flex-basis:100%;font-size:.85rem" class="muted">Contra el pesaje del ${short(prev.date)} (${fmtKg(prev.kg)} kg): <b style="color:${d<0?"var(--ok)":d>0?"var(--bad)":"var(--ink)"}">${d<0?"bajaste "+fmtKg(-d)+" kg":d>0?"subiste "+fmtKg(d)+" kg":"igual, 0 kg"}</b></div>`)}}
   renderBurn(doc);
   // comidas
