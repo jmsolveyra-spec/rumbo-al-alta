@@ -156,6 +156,11 @@ button{cursor:pointer}
 .sugs button{border:0;border-bottom:1px solid var(--line);background:none;text-align:left;padding:10px 12px;display:flex;justify-content:space-between;gap:10px}
 .sugs button:last-child{border-bottom:0}
 .sugs button span:last-child{color:var(--muted);font-size:.82rem;flex:none}
+.sugs .wchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 10px;border-bottom:1px solid var(--line)}
+.sugs .wchips button{border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:.82rem;font-weight:700;background:var(--bg);color:var(--ink)}
+.wq{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.wq button{border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:.8rem;font-weight:700;background:var(--surface);color:var(--muted)}
+.wq button[aria-pressed="true"]{background:var(--mc);border-color:var(--mc);color:var(--surface)}
 .sugs .manual{color:var(--p);font-weight:700}
 .chip[aria-pressed="true"][data-s="nada"]{background:var(--muted);border-color:var(--muted);color:var(--surface)}
 .skipped{font-size:.88rem;color:var(--muted);margin:0}
@@ -569,16 +574,18 @@ function itemRow(it,i){
     <input type="text" inputmode="decimal" data-act="q" data-i="${i}" value="${it.q}" aria-label="Cantidad">
     <select data-act="u" data-i="${i}" aria-label="Unidad">${opts.map(o=>`<option${o===it.u?" selected":""}>${esc(o)}</option>`).join("")}</select>
     <button data-act="plus" data-i="${i}" aria-label="Más">+</button>
-    <button class="x" data-act="del" data-i="${i}" aria-label="Borrar">×</button></div></li>`;
+    <button class="x" data-act="del" data-i="${i}" aria-label="Borrar">×</button></div>
+    ${wOf(it)?`<div class="wq">${wOf(it).map(g=>`<button data-act="setg" data-i="${i}" data-g="${g}" aria-pressed="${it.u==="g"&&Number(it.q)===g}">${g} g</button>`).join("")}</div>`:""}</li>`;
 }
 const norm=t=>t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 const VAGUE=/^(porci|bife|filet|plato|presa)/;
+const wOf=it=>it.w||FOODS.find(f=>f[0]===it.t)?.[3]||null; // botones rápidos de gramos
 function gramsPer(it){return it.u==="g"?1:((it.us||[]).find(([l])=>l===it.u)?.[1]||1)}
 function calc(it){if(!it.m&&it.k100!=null)it.k=Math.round(it.k100*gramsPer(it)*Number(it.q||0)/100);return it}
 function newItem(f,q,u){ // f = [nombre, kcal100, unidades]
-  const[t,k100,us]=f;let unit=u, qty=q;
+  const[t,k100,us,w]=f;let unit=u, qty=q;
   if(!unit){if(VAGUE.test(us[0][0])&&!(qty!=null&&qty<=20)){unit="g";qty=qty??us[0][1]}else{unit=us[0][0];qty=qty??1}} // "pizza 2" = 2 porciones; "pollo 180" = 180 g
-  return calc({t,k100,us,u:unit,q:qty});
+  return calc({t,k100,us,u:unit,q:qty,...(w?{w}:{})});
 }
 function customFoods(){ // lo que cada uno cargó a mano, para volver a elegirlo
   const map={};
@@ -607,7 +614,8 @@ function showSugs(mk){
   const mk2=v.match(/^(.*?)\s*(\d{2,5})\s*(k?cal\w*|calor\w*)?\s*$/i);
   const kc=mk2&&(mk2[3]||!mk2[1].trim()||!res.length)?{t:mk2[1].trim().replace(/[.:,-]+$/,"")||"Varios",k:Number(mk2[2])}:null;
   const label=f=>{const it=newItem(f,qty,unit&&unit);return`${it.q} ${it.u} · ${it.k} kcal`};
-  box.innerHTML=res.map((f,i)=>`<button type="button" data-act="pick" data-i="${i}"><span>${esc(f[0])}</span><span>${esc(label(f))}</span></button>`).join("")+
+  box.innerHTML=res.map((f,i)=>`<button type="button" data-act="pick" data-i="${i}"><span>${esc(f[0])}</span><span>${esc(label(f))}</span></button>`+
+    (f[3]&&!qty?`<div class="wchips">${f[3].map(g=>`<button type="button" data-act="pickg" data-i="${i}" data-g="${g}">${g} g · ${Math.round(f[1]*g/100)}</button>`).join("")}</div>`:"")).join("")+
     custom.map((c,i)=>`<button type="button" data-act="pickc" data-i="${i}"><span>${esc(c.t)}</span><span>${c.k} kcal</span></button>`).join("")+
     (kc?`<button type="button" class="manual" data-act="manualk"><span>Agregar “${esc(kc.t)}” con ${kc.k.toLocaleString("es-AR")} kcal</span><span>a mano</span></button>`:"")+
     `<button type="button" class="manual" data-act="manual"><span>Agregar “${esc(v)}” a mano</span><span>poner kcal</span></button>`;
@@ -802,6 +810,8 @@ $("meals").addEventListener("click",e=>{
     if(x&&f){x.food=f;x.t=f[0];x.kpg=null;x.on=true;rkcal(x)}p.edit=null;p.q="";render()}
   if(b.dataset.act==="status")mutate(d=>{const m=d.meals[mk]||={items:[]};m.s=m.s===b.dataset.s?null:b.dataset.s});
   if(b.dataset.act==="del")mutate(d=>{d.meals[mk].items.splice(i,1)});
+  if(b.dataset.act==="pickg")pushItem(mk,newItem(dt.res[i],Number(b.dataset.g),"g"));
+  if(b.dataset.act==="setg")mutate(d=>{const it=d.meals[mk].items[i];it.u="g";it.q=Number(b.dataset.g);calc(it)});
   if(b.dataset.act==="pick")pushItem(mk,newItem(dt.res[i],dt.qty,dt.unit));
   if(b.dataset.act==="pickc"){const c=dt.custom[i];pushItem(mk,{t:c.t,k:c.k,m:1})}
   if(b.dataset.act==="manual")pushItem(mk,{t:dt.v.replace(/[.:,-]+$/,""),k:null,m:1},true);
