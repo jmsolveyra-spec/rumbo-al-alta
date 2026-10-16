@@ -227,6 +227,7 @@ details.card summary{cursor:pointer;font-family:var(--display);font-weight:800;f
 .balance .bl span:nth-child(even){text-align:right}
 .balance .res{font-family:var(--display);font-weight:800;font-size:1.25rem}
 .stepsync{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:.85rem;color:var(--muted)}
+.stepsync .linkbox{width:100%;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--bg);color:var(--ink);font-size:.8rem}
 .stepsync code{word-break:break-all;color:var(--ink);font-size:.78rem;background:var(--bg);padding:6px;border-radius:6px}
 .stepsync button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;font-weight:700;color:var(--ink)}
 .outbtn{grid-column:1/-1;border:1px solid var(--line);background:none;border-radius:10px;padding:10px;color:var(--muted);font-weight:700}
@@ -649,11 +650,14 @@ function renderSync(p){
   if(!url){box.innerHTML="Pasos automáticos desde el iPhone: todavía no está configurado.";return}
   if(!P.stepsToken){box.innerHTML=`<span>Pasos automáticos desde el iPhone de ${esc(P.name)}</span><button type="button" data-tok="${p}">Crear link para el atajo</button>`;return}
   const link=url+"?t="+P.stepsToken+"&p=";
-  box.innerHTML=`<span>Link para el atajo de pasos de ${esc(P.name)} (al final va la cantidad de pasos):</span><code>${esc(link)}</code><button type="button" data-copy="${esc(link)}">Copiar link</button>`;
+  box.innerHTML=`<span>Link para el atajo de pasos de ${esc(P.name)}:</span><input class="linkbox" id="${p}-link" readonly value="${esc(link)}" aria-label="Link del atajo"><button type="button" data-copy="${p}-link">Copiar link</button>`;
 }
 $("cfgForm").addEventListener("click",async e=>{
   const t=e.target.closest("button[data-tok],button[data-copy]");if(!t)return;
-  if(t.dataset.copy){try{await navigator.clipboard.writeText(t.dataset.copy);t.textContent="Copiado"}catch(err){const c=t.previousElementSibling;const r=document.createRange();r.selectNodeContents(c);getSelection().removeAllRanges();getSelection().addRange(r);t.textContent="Seleccionado: copialo"}return}
+  if(t.dataset.copy){const inp=$(t.dataset.copy);inp.focus();inp.setSelectionRange(0,inp.value.length);let ok=false;
+    try{ok=document.execCommand("copy")}catch(err){}
+    if(!ok){try{await navigator.clipboard.writeText(inp.value);ok=true}catch(err){}}
+    t.textContent=ok?"✓ Copiado. Ya podés pegarlo en Atajos":"No se pudo copiar: mantené apretado el link y elegí Copiar";return}
   const p=t.dataset.tok,a=new Uint8Array(12);crypto.getRandomValues(a);
   cfg.people[p].stepsToken=[...a].map(x=>x.toString(16).padStart(2,"0")).join("");
   t.textContent="Guardando…";try{await put("config",structuredClone(cfg))}catch(err){t.textContent="No se pudo guardar";return}
