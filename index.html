@@ -577,7 +577,7 @@ function gramsPer(it){return it.u==="g"?1:((it.us||[]).find(([l])=>l===it.u)?.[1
 function calc(it){if(!it.m&&it.k100!=null)it.k=Math.round(it.k100*gramsPer(it)*Number(it.q||0)/100);return it}
 function newItem(f,q,u){ // f = [nombre, kcal100, unidades]
   const[t,k100,us]=f;let unit=u, qty=q;
-  if(!unit){if(VAGUE.test(us[0][0])){unit="g";qty=qty??us[0][1]}else{unit=us[0][0];qty=qty??1}}
+  if(!unit){if(VAGUE.test(us[0][0])&&!(qty!=null&&qty<=20)){unit="g";qty=qty??us[0][1]}else{unit=us[0][0];qty=qty??1}} // "pizza 2" = 2 porciones; "pollo 180" = 180 g
   return calc({t,k100,us,u:unit,q:qty});
 }
 function customFoods(){ // lo que cada uno cargó a mano, para volver a elegirlo
