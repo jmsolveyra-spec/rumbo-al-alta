@@ -613,7 +613,7 @@ function bmr(p,kg){const P=cfg.people[p],cm=Number(P.cm),age=Number(P.age);if(!c
 const hora=iso=>{const d=new Date(iso);return(iso.slice(0,10)===TODAY?"":short(iso.slice(0,10))+" ")+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})};
 let actSel=0,actMin=60;
 function renderBurn(doc){
-  const kg=kgAt(pid,cur),n=doc.stepsCount,sk=n?stepsKcal(n,kg):0,acts=doc.acts||[],ak=acts.reduce((t,a)=>t+actKcal(a,kg),0);
+  const kg=kgAt(pid,cur),n=doc.stepsCount>=0&&doc.stepsCount<100000?doc.stepsCount:null,sk=n?stepsKcal(n,kg):0,acts=doc.acts||[],ak=acts.reduce((t,a)=>t+actKcal(a,kg),0);
   $("burn").innerHTML=`<div class="bh"><h3>Actividad</h3><b>${(sk+ak).toLocaleString("es-AR")} kcal quemadas</b></div>
    <div class="steprow"><span>Pasos</span><input id="pasos" inputmode="numeric" placeholder="Ej: 8500" value="${n??""}" aria-label="Pasos del día"${canWrite?"":" disabled"}><span class="sk">${n?sk.toLocaleString("es-AR")+" kcal":""}</span></div>
    <div class="kbar"><i style="width:${Math.min(100,(n||0)/100)}%;background:${(n||0)>=10000?"var(--ok)":"var(--p)"}"></i></div>
@@ -642,7 +642,9 @@ $("burn").addEventListener("change",e=>{
   const t=e.target,i=Number(t.dataset.i);
   if(t.id==="actSel"){actSel=Number(t.value);return}
   if(t.id==="actMin"){actMin=Math.max(1,Number(t.value)||60);return}
-  if(t.id==="pasos"){const n=Math.round(Number(String(t.value).replace(/\D/g,"")));mutate(d=>{d.stepsCount=t.value.trim()===""?null:n;d.steps=n>=10000;delete d.stepsAt})}
+  if(t.id==="pasos"){const m=String(t.value).match(/[\d.,]+/),n=m?Math.round(parseFloat(m[0].replace(/[.,](?=\d{3}(\D|$))/g,"").replace(",","."))):NaN;
+    if(t.value.trim()!==""&&!(n>=0&&n<100000)){t.value="";$("saved").textContent="Esa cantidad de pasos no parece válida. Escribila así: 8500";return}
+    mutate(d=>{d.stepsCount=t.value.trim()===""?null:n;d.steps=n>=10000;delete d.stepsAt})}
   if(t.dataset.act==="amin")setActs(x=>{x[i].min=Math.max(1,Number(t.value)||0)});
   if(t.dataset.act==="ak")setActs(x=>{x[i].k=t.value===""?null:Math.round(Number(t.value))});
 });
