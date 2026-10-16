@@ -595,7 +595,7 @@ function searchFoods(q){
   const words=norm(txt).split(/\s+/).filter(w=>w.length>1).map(w=>w.replace(/(es|s)$/,""));
   if(!words.length)return{qty,unit,res:[],custom:[]};
   const hit=n=>words.every(w=>norm(n).includes(w));
-  const res=FOODS.filter(f=>hit(f[0])).sort((a,b)=>norm(a[0]).indexOf(words[0])-norm(b[0]).indexOf(words[0])).slice(0,8);
+  const res=FOODS.filter(f=>hit(f[0])).sort((a,b)=>(norm(a[0]).startsWith(words[0])?0:1)-(norm(b[0]).startsWith(words[0])?0:1)).slice(0,8); // primero los que empiezan con la palabra; después, el orden de la lista (los más comunes arriba)
   const custom=customFoods().filter(c=>hit(c.t)).slice(0,3);
   return{qty,unit,res,custom};
 }
