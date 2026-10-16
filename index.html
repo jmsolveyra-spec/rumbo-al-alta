@@ -202,6 +202,33 @@ details.card summary{cursor:pointer;font-family:var(--display);font-weight:800;f
 .savebtn{grid-column:1/-1;border:0;background:var(--p);color:var(--surface);border-radius:10px;padding:11px;font-weight:700}
 .note{font-size:.82rem;color:var(--muted);margin:0}
 @media (prefers-reduced-motion:no-preference){.track .fill,.kbar i{transition:width .4s ease}}
+.burn,.balance{border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.burn .bh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.burn .bh h3{font-size:1.05rem;font-weight:800}
+.burn .bh b{color:var(--ok);font-variant-numeric:tabular-nums}
+.steprow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.steprow input,.actadd input,.actadd select,.acts input{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 10px;font:inherit;min-width:0}
+.steprow input{width:110px;text-align:right;font-variant-numeric:tabular-nums}
+.steprow .sk{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.small{font-size:.8rem;color:var(--muted)}
+.acts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.acts li{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px dotted var(--line);flex-wrap:wrap}
+.acts li .an{flex:1 1 100%;min-width:0}
+.acts li .ctl{display:flex;align-items:center;gap:5px;margin-left:auto}
+.acts li input{width:64px;text-align:right;padding:7px 8px}
+.acts li b{width:76px;text-align:right;font-variant-numeric:tabular-nums}
+.acts button,.actadd button{border:1px solid var(--line);background:var(--surface);border-radius:8px;min-width:36px;height:36px;font-weight:700}
+.acts .x{border:0;background:none;color:var(--muted);min-width:28px}
+.actadd{display:flex;gap:6px;flex-wrap:wrap}
+.actadd select{flex:1 1 200px}
+.actadd input{width:70px;text-align:right}
+.actadd button{background:var(--p);color:var(--surface);border:0;padding:0 14px}
+.balance .bl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-variant-numeric:tabular-nums}
+.balance .bl span:nth-child(even){text-align:right}
+.balance .res{font-family:var(--display);font-weight:800;font-size:1.25rem}
+.stepsync{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:.85rem;color:var(--muted)}
+.stepsync code{word-break:break-all;color:var(--ink);font-size:.78rem;background:var(--bg);padding:6px;border-radius:6px}
+.stepsync button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;font-weight:700;color:var(--ink)}
 .outbtn{grid-column:1/-1;border:1px solid var(--line);background:none;border-radius:10px;padding:10px;color:var(--muted);font-weight:700}
 .login{max-width:420px;margin:0 auto;padding:12vh 16px 40px;display:flex;flex-direction:column;gap:18px}
 .login .big{font-size:4rem}
@@ -255,9 +282,9 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
     <div style="text-align:center" id="todayWrap" hidden><button class="todaybtn" id="goToday">Volver a hoy</button></div>
     <div class="summary" id="summary"></div>
     <div class="weigh" id="weigh"></div>
-    <div class="habits">
-      <button class="habit" id="h-train" aria-pressed="false"><span class="box"></span>Entrené</button>
-      <button class="habit" id="h-steps" aria-pressed="false"><span class="box"></span>10.000 pasos</button>
+    <div class="burn" id="burn"></div>
+    <div class="balance" id="balance"></div>
+    <div hidden>
     </div>
     <div id="meals"></div>
     <div class="saved" id="saved"></div>
@@ -290,17 +317,26 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
     <form class="form" id="cfgForm">
       <h3 id="setA">Persona 1</h3>
       <label class="full">Nombre<input id="a-name" maxlength="20"></label>
-      <label>Peso inicial (kg)<input id="a-startKg" type="number" step="0.1" inputmode="decimal"></label>
-      <label>Kilos a bajar<input id="a-toLose" type="number" step="0.5" inputmode="decimal"></label>
-      <label class="full">Calorías objetivo por día<input id="a-kcal" type="number" step="50" inputmode="numeric"></label>
+      <label>Peso inicial (kg)<input id="a-startKg" type="text" inputmode="decimal"></label>
+      <label>Kilos a bajar<input id="a-toLose" type="text" inputmode="decimal"></label>
+      <label class="full">Calorías objetivo por día<input id="a-kcal" type="text" inputmode="numeric"></label>
+      <label>Altura (cm)<input id="a-cm" type="text" inputmode="numeric"></label>
+      <label>Edad<input id="a-age" type="text" inputmode="numeric"></label>
+      <label class="full">Sexo (para el metabolismo basal)<select id="a-sex"><option value="m">Hombre</option><option value="f">Mujer</option></select></label>
+      <div class="full stepsync" id="a-sync"></div>
       <h3 id="setB">Persona 2</h3>
       <label class="full">Nombre<input id="b-name" maxlength="20"></label>
-      <label>Peso inicial (kg)<input id="b-startKg" type="number" step="0.1" inputmode="decimal"></label>
-      <label>Kilos a bajar<input id="b-toLose" type="number" step="0.5" inputmode="decimal"></label>
-      <label class="full">Calorías objetivo por día<input id="b-kcal" type="number" step="50" inputmode="numeric"></label>
+      <label>Peso inicial (kg)<input id="b-startKg" type="text" inputmode="decimal"></label>
+      <label>Kilos a bajar<input id="b-toLose" type="text" inputmode="decimal"></label>
+      <label class="full">Calorías objetivo por día<input id="b-kcal" type="text" inputmode="numeric"></label>
+      <label>Altura (cm)<input id="b-cm" type="text" inputmode="numeric"></label>
+      <label>Edad<input id="b-age" type="text" inputmode="numeric"></label>
+      <label class="full">Sexo (para el metabolismo basal)<select id="b-sex"><option value="m">Hombre</option><option value="f">Mujer</option></select></label>
+      <div class="full stepsync" id="b-sync"></div>
       <button class="savebtn" type="submit">Guardar ajustes</button>
       <button class="outbtn" type="button" id="logout">Cerrar sesión en este celular</button>
       <p class="note full">Cómo se calcula la adherencia: cada comida vale 100% si fue “En plan”, 50% si fue “Más o menos” y 0% si “Me salí”. El porcentaje del día es el promedio de las comidas marcadas. Si no cargás peso inicial, se toma el primer pesaje. El peso meta es el peso inicial menos los kilos a bajar.</p>
+      <p class="note full">Calorías quemadas (estimadas): pasos ≈ 0,5 kcal por kilo de peso cada 1.000 pasos; actividades = intensidad (MET) × peso × horas. El gasto del día suma tu metabolismo basal (fórmula de Mifflin-St Jeor con peso, altura, edad y sexo) × 1,1 por la vida diaria, más los pasos y las actividades. Son estimaciones.</p>
     </form>
   </details>
 </div>
@@ -309,14 +345,15 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="foods.js"></script>
+<script src="activities.js"></script>
 <script>
 
 const MEALS=[["des","Desayuno"],["alm","Almuerzo"],["mer","Merienda"],["cen","Cena"],["col","Colaciones"]];
 const STATUS=[["plan","En plan",100],["medio","Más o menos",50],["fuera","Me salí",0]];
 const SCORE={plan:100,medio:50,fuera:0}; // "nada" (no comí) no suma ni resta
 const DEFAULT_CFG={start:"2026-10-13",end:"2026-12-20",people:{
-  a:{name:"Juan",startKg:null,toLose:13,kcal:1800},
-  b:{name:"Juli",startKg:null,toLose:13,kcal:1500}}};
+  a:{name:"Juan",startKg:null,toLose:13,kcal:1800,sex:"m"},
+  b:{name:"Juli",startKg:null,toLose:13,kcal:1500,sex:"f"}}};
 const DOW=["dom","lun","mar","mié","jue","vie","sáb"];
 const DOWL=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const MON=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -329,6 +366,7 @@ const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
 const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const short=s=>{const d=parse(s);return d.getDate()+"/"+pad(d.getMonth()+1)};
+const fmtKg=n=>Number(n).toLocaleString("es-AR",{minimumFractionDigits:1,maximumFractionDigits:2});
 const fmt=(n,dec=1)=>n==null||isNaN(n)?"—":Number(n).toLocaleString("es-AR",{minimumFractionDigits:dec,maximumFractionDigits:dec});
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 
@@ -367,7 +405,7 @@ function personStats(p){
     adh:adh.length?adh.reduce((a,b)=>a+b,0)/adh.length:null,
     adh7:last7.length?last7.reduce((a,b)=>a+b,0)/last7.length:null,
     logged:adh.length, elapsed,
-    train:upto.filter(d=>d.train).length, steps:upto.filter(d=>d.steps).length,
+    train:upto.filter(d=>d.train||(d.acts||[]).length).length, steps:upto.filter(d=>d.steps).length,
     weights,startKg,curKg,lost:startKg!=null&&curKg!=null?startKg-curKg:null,
     toLose:Number(P.toLose)||null,
     goalKg:startKg!=null&&Number(P.toLose)?startKg-Number(P.toLose):null
@@ -441,12 +479,11 @@ function renderDay(){
   const due=isWeigh(cur);
   const w=$("weigh");w.className="weigh"+(due?" due":"");
   w.innerHTML=`<div class="t"><b>${due?"Día de pesaje":"Peso"}</b><br><span class="muted" style="font-size:.82rem">${due?"Cada "+WEIGH_EVERY+" días, en ayunas":"Hoy no toca, es opcional"}</span></div>
-    <input id="kg" type="number" step="0.1" inputmode="decimal" placeholder="kg" value="${doc.kg??""}" ${canWrite?"":"disabled"}> <span class="muted">kg</span>`;
+    <input id="kg" type="text" inputmode="decimal" placeholder="Ej: 87,20" value="${doc.kg!=null&&doc.kg!==""?fmtKg(doc.kg):""}" ${canWrite?"":"disabled"}> <span class="muted">kg</span>`;
   if(doc.kg!=null&&doc.kg!==""){const prev=personStats(pid).weights.filter(x=>x.date<cur).pop();
-    if(prev){const d=Math.round((Number(doc.kg)-prev.kg)*10)/10;
-      w.insertAdjacentHTML("beforeend",`<div style="flex-basis:100%;font-size:.85rem" class="muted">Contra el pesaje del ${short(prev.date)} (${fmt(prev.kg)} kg): <b style="color:${d<0?"var(--ok)":d>0?"var(--bad)":"var(--ink)"}">${d<0?"bajaste "+fmt(-d)+" kg":d>0?"subiste "+fmt(d)+" kg":"igual, 0 kg"}</b></div>`)}}
-  $("h-train").setAttribute("aria-pressed",String(!!doc.train));
-  $("h-steps").setAttribute("aria-pressed",String(!!doc.steps));
+    if(prev){const d=Math.round((Number(doc.kg)-prev.kg)*100)/100;
+      w.insertAdjacentHTML("beforeend",`<div style="flex-basis:100%;font-size:.85rem" class="muted">Contra el pesaje del ${short(prev.date)} (${fmtKg(prev.kg)} kg): <b style="color:${d<0?"var(--ok)":d>0?"var(--bad)":"var(--ink)"}">${d<0?"bajaste "+fmtKg(-d)+" kg":d>0?"subiste "+fmtKg(d)+" kg":"igual, 0 kg"}</b></div>`)}}
+  renderBurn(doc);
   // comidas
   $("meals").innerHTML=MEALS.map(([mk,ml])=>{
     const m=doc.meals?.[mk]||{}, items=m.items||[];
@@ -501,7 +538,7 @@ function renderCal(){
   for(let k=0;k<=diff(cfg.start,cfg.end);k++){
     const d=addDays(cfg.start,k), doc=getDay(pid,d), a=dayAdh(doc);
     const cls=["cell",adhClass(a),d>TODAY?"future":"",d===cur?"sel":"",d===TODAY?"today":"",isWeigh(d)?"w":""].join(" ");
-    h+=`<button class="${cls}" data-d="${d}" aria-label="${short(d)}${a!=null?", "+Math.round(a)+"%":""}"><span class="num">${parse(d).getDate()}</span><span class="dots">${doc.train?"<b></b>":""}${doc.steps?'<b class="st"></b>':""}</span></button>`;
+    h+=`<button class="${cls}" data-d="${d}" aria-label="${short(d)}${a!=null?", "+Math.round(a)+"%":""}"><span class="num">${parse(d).getDate()}</span><span class="dots">${doc.train||(doc.acts||[]).length?"<b></b>":""}${doc.steps?'<b class="st"></b>':""}</span></button>`;
   }
   $("cal").innerHTML=h;
 }
@@ -521,7 +558,7 @@ function itemRow(it,i){
   const opts=[...(it.us||[]).map(([l])=>l),"g"];
   return`<li class="it"><div class="itn"><span>${esc(it.t)}</span><b>${kc}</b></div>
     <div class="itc"><button data-act="minus" data-i="${i}" aria-label="Menos">−</button>
-    <input type="number" inputmode="decimal" step="any" data-act="q" data-i="${i}" value="${it.q}" aria-label="Cantidad">
+    <input type="text" inputmode="decimal" data-act="q" data-i="${i}" value="${it.q}" aria-label="Cantidad">
     <select data-act="u" data-i="${i}" aria-label="Unidad">${opts.map(o=>`<option${o===it.u?" selected":""}>${esc(o)}</option>`).join("")}</select>
     <button data-act="plus" data-i="${i}" aria-label="Más">+</button>
     <button class="x" data-act="del" data-i="${i}" aria-label="Borrar">×</button></div></li>`;
@@ -564,6 +601,64 @@ function showSugs(mk){
     `<button type="button" class="manual" data-act="manual"><span>Agregar “${esc(v)}” a mano</span><span>poner kcal</span></button>`;
   box._data={qty,unit,res,custom,v};box.hidden=false;
 }
+
+/* ---------- actividad y balance ---------- */
+const kgAt=(p,date)=>{const st=personStats(p),ws=st.weights.filter(w=>w.date<=date);return ws.length?ws[ws.length-1].kg:(st.startKg??st.weights[0]?.kg??80)};
+const stepsKcal=(n,kg)=>Math.round((Number(n)||0)*kg*0.0005); // ≈0,5 kcal por kg cada 1.000 pasos
+const actKcal=(a,kg)=>a.met?Math.round(a.met*kg*(Number(a.min)||0)/60):Math.round(Number(a.k)||0);
+function bmr(p,kg){const P=cfg.people[p],cm=Number(P.cm),age=Number(P.age);if(!cm||!age)return null;return Math.round(10*kg+6.25*cm-5*age+(P.sex==="f"?-161:5))}
+const hora=iso=>{const d=new Date(iso);return(iso.slice(0,10)===TODAY?"":short(iso.slice(0,10))+" ")+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})};
+let actSel=0,actMin=60;
+function renderBurn(doc){
+  const kg=kgAt(pid,cur),n=doc.stepsCount,sk=n?stepsKcal(n,kg):0,acts=doc.acts||[],ak=acts.reduce((t,a)=>t+actKcal(a,kg),0);
+  $("burn").innerHTML=`<div class="bh"><h3>Actividad</h3><b>${(sk+ak).toLocaleString("es-AR")} kcal quemadas</b></div>
+   <div class="steprow"><span>Pasos</span><input id="pasos" inputmode="numeric" placeholder="Ej: 8500" value="${n??""}" aria-label="Pasos del día"${canWrite?"":" disabled"}><span class="sk">${n?sk.toLocaleString("es-AR")+" kcal":""}</span></div>
+   <div class="kbar"><i style="width:${Math.min(100,(n||0)/100)}%;background:${(n||0)>=10000?"var(--ok)":"var(--p)"}"></i></div>
+   <span class="small">${n>=10000?"¡Meta de 10.000 cumplida!":n?"Faltan "+(10000-n).toLocaleString("es-AR")+" para los 10.000":"Cargalos a mano o con el atajo del iPhone (ver Ajustes)."}${doc.stepsAt?" · Del celular, "+hora(doc.stepsAt):""}</span>
+   ${acts.length?`<ul class="acts">${acts.map((a,i)=>`<li><span class="an">${esc(a.a)}</span><span class="ctl">${a.met?`<button data-act="amin-" data-i="${i}" aria-label="Menos minutos">−</button><input inputmode="numeric" data-act="amin" data-i="${i}" value="${a.min}" aria-label="Minutos"><span class="small">min</span><button data-act="amin+" data-i="${i}" aria-label="Más minutos">+</button>`:`<input inputmode="numeric" data-act="ak" data-i="${i}" value="${a.k??""}" placeholder="kcal" aria-label="Calorías"><span class="small">kcal</span>`}<b>${actKcal(a,kg).toLocaleString("es-AR")} kcal</b><button class="x" data-act="adel" data-i="${i}" aria-label="Borrar">×</button></span></li>`).join("")}</ul>`:""}
+   <div class="actadd"><select id="actSel" aria-label="Actividad">${ACTIVITIES.map((x,i)=>`<option value="${i}"${i===actSel?" selected":""}>${esc(x[0])}</option>`).join("")}</select><input id="actMin" inputmode="numeric" value="${actMin}" aria-label="Minutos"><span class="small" style="align-self:center">min</span><button data-act="aadd">Agregar</button></div>`;
+  // balance del día
+  const eat=dayKcal(doc),burn=sk+ak,b=bmr(pid,kg),f=x=>Math.round(x).toLocaleString("es-AR");
+  let h;
+  if(b){const base=Math.round(b*1.1),gasto=base+burn,net=eat-gasto;
+    h=`<div class="bh"><h3>Balance del día</h3></div><div class="bl"><span>Comiste</span><span>${f(eat)} kcal</span><span>Gasto base (metabolismo + vida diaria)</span><span>${f(base)} kcal</span><span>Actividad (pasos + ejercicio)</span><span>${f(burn)} kcal</span><span><b>Gasto total</b></span><span><b>${f(gasto)} kcal</b></span></div>
+    ${eat?`<span class="res" style="color:${net<0?"var(--ok)":"var(--bad)"}">${net<0?"Déficit de "+f(-net)+" kcal":"Superávit de "+f(net)+" kcal"}</span><span class="small">${net<0?"Bien: gastaste más de lo que comiste.":"Comiste más de lo que gastaste."} Estimado; se completa al final del día.</span>`:`<span class="small">Cargá las comidas para ver si estás en déficit.</span>`}`}
+  else h=`<div class="bh"><h3>Balance del día</h3></div><div class="bl"><span>Comiste</span><span>${f(eat)} kcal</span><span>Quemaste con actividad</span><span>− ${f(burn)} kcal</span><span><b>Neto</b></span><span><b>${f(eat-burn)} kcal</b></span></div>
+    <span class="small">Para saber si estás en déficit, completá <b>altura, edad y sexo</b> en Ajustes (abajo de todo).</span>`;
+  $("balance").innerHTML=h;
+}
+function setActs(fn){mutate(d=>{d.acts=d.acts||[];fn(d.acts);d.train=d.acts.length>0})}
+$("burn").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-act]");if(!b)return;const i=Number(b.dataset.i);
+  if(b.dataset.act==="aadd"){const [a,met]=ACTIVITIES[actSel];const min=Math.max(1,Number($("actMin").value)||60);
+    setActs(x=>x.push(met?{a,met,min}:{a:"Otra actividad",met:0,k:null}))}
+  if(b.dataset.act==="adel")setActs(x=>x.splice(i,1));
+  if(b.dataset.act==="amin+"||b.dataset.act==="amin-")setActs(x=>{x[i].min=Math.max(5,(Number(x[i].min)||0)+(b.dataset.act==="amin+"?5:-5))});
+});
+$("burn").addEventListener("change",e=>{
+  const t=e.target,i=Number(t.dataset.i);
+  if(t.id==="actSel"){actSel=Number(t.value);return}
+  if(t.id==="actMin"){actMin=Math.max(1,Number(t.value)||60);return}
+  if(t.id==="pasos"){const n=Math.round(Number(String(t.value).replace(/\D/g,"")));mutate(d=>{d.stepsCount=t.value.trim()===""?null:n;d.steps=n>=10000;delete d.stepsAt})}
+  if(t.dataset.act==="amin")setActs(x=>{x[i].min=Math.max(1,Number(t.value)||0)});
+  if(t.dataset.act==="ak")setActs(x=>{x[i].k=t.value===""?null:Math.round(Number(t.value))});
+});
+// atajo de iPhone para traer los pasos de la app Salud
+function renderSync(p){
+  const box=$(p+"-sync"),P=cfg.people[p],url=window.RUMBO.PASOS_URL;if(!box)return;
+  if(!url){box.innerHTML="Pasos automáticos desde el iPhone: todavía no está configurado.";return}
+  if(!P.stepsToken){box.innerHTML=`<span>Pasos automáticos desde el iPhone de ${esc(P.name)}</span><button type="button" data-tok="${p}">Crear link para el atajo</button>`;return}
+  const link=url+"?t="+P.stepsToken+"&p=";
+  box.innerHTML=`<span>Link para el atajo de pasos de ${esc(P.name)} (al final va la cantidad de pasos):</span><code>${esc(link)}</code><button type="button" data-copy="${esc(link)}">Copiar link</button>`;
+}
+$("cfgForm").addEventListener("click",async e=>{
+  const t=e.target.closest("button[data-tok],button[data-copy]");if(!t)return;
+  if(t.dataset.copy){try{await navigator.clipboard.writeText(t.dataset.copy);t.textContent="Copiado"}catch(err){const c=t.previousElementSibling;const r=document.createRange();r.selectNodeContents(c);getSelection().removeAllRanges();getSelection().addRange(r);t.textContent="Seleccionado: copialo"}return}
+  const p=t.dataset.tok,a=new Uint8Array(12);crypto.getRandomValues(a);
+  cfg.people[p].stepsToken=[...a].map(x=>x.toString(16).padStart(2,"0")).join("");
+  t.textContent="Guardando…";try{await put("config",structuredClone(cfg))}catch(err){t.textContent="No se pudo guardar";return}
+  renderSync(p);
+});
 
 /* ---------- foto -> calorías ---------- */
 const photo={}; // por persona_fecha_comida: {st:"loading"|"ready"|"error", items, nota, err}
@@ -649,10 +744,11 @@ document.querySelectorAll(".who button").forEach(b=>b.onclick=()=>{pid=b.dataset
 $("prev").onclick=()=>{cur=addDays(cur,-1);render()};
 $("next").onclick=()=>{cur=addDays(cur,1);render()};
 $("goToday").onclick=()=>{cur=today();render()};
-$("h-train").onclick=()=>mutate(d=>{d.train=!d.train});
-$("h-steps").onclick=()=>mutate(d=>{d.steps=!d.steps});
+
 $("day").addEventListener("change",e=>{
-  if(e.target.id==="kg"){const v=e.target.value.replace(",",".");mutate(d=>{d.kg=v===""?null:Math.round(Number(v)*10)/10})}
+  if(e.target.id==="kg"){const v=e.target.value.trim().replace(/\s|kg/gi,"").replace(",",".");const n=Number(v);
+    if(v!==""&&!(n>20&&n<300)){e.target.value="";$("saved").textContent="Ese peso no parece válido. Escribilo así: 87,20";return}
+    mutate(d=>{d.kg=v===""?null:Math.round(n*100)/100})}
 });
 $("meals").addEventListener("input",e=>{
   if(e.target.classList.contains("food"))showSugs(e.target.closest(".meal").dataset.m);
@@ -704,12 +800,12 @@ $("meals").addEventListener("change",e=>{
 });
 $("cal").addEventListener("click",e=>{const c=e.target.closest(".cell[data-d]");if(!c)return;cur=c.dataset.d;render();$("day").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"})});
 $("settings").addEventListener("toggle",()=>{if($("settings").open)fillSettings()});
-function fillSettings(){for(const p of["a","b"]){const P=cfg.people[p];for(const f of["name","startKg","toLose","kcal"])$(p+"-"+f).value=P[f]??"";}
+function fillSettings(){for(const p of["a","b"]){const P=cfg.people[p];for(const f of["name","startKg","toLose","kcal","cm","age"])$(p+"-"+f).value=P[f]!=null?String(P[f]).replace(".",","):"";$(p+"-sex").value=P.sex||(p==="a"?"m":"f");renderSync(p)}
   $("setA").textContent=cfg.people.a.name||"Persona 1";$("setB").textContent=cfg.people.b.name||"Persona 2"}
 $("cfgForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!canWrite)return;
   const num=v=>v===""?null:Number(String(v).replace(",","."));
-  for(const p of["a","b"])cfg.people[p]={name:$(p+"-name").value.trim()||DEFAULT_CFG.people[p].name,startKg:num($(p+"-startKg").value),toLose:num($(p+"-toLose").value),kcal:num($(p+"-kcal").value)||DEFAULT_CFG.people[p].kcal};
+  for(const p of["a","b"])cfg.people[p]={...cfg.people[p],cm:num($(p+"-cm").value),age:num($(p+"-age").value),sex:$(p+"-sex").value,name:$(p+"-name").value.trim()||DEFAULT_CFG.people[p].name,startKg:num($(p+"-startKg").value),toLose:num($(p+"-toLose").value),kcal:num($(p+"-kcal").value)||DEFAULT_CFG.people[p].kcal};
   cfgDirty=true;render();const btn=e.submitter;btn.textContent="Guardando…";
   try{if(db)await put("config",structuredClone(cfg));btn.textContent="Guardado"}catch(err){btn.textContent="No se pudo guardar"}
   cfgDirty=false;setTimeout(()=>btn.textContent="Guardar ajustes",1500);
